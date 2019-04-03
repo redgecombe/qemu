@@ -32,6 +32,7 @@ bool kvm_allowed;
 bool kvm_readonly_mem_allowed;
 bool kvm_ioeventfd_any_length_allowed;
 bool kvm_msi_use_devid;
+int kvm_xo_bit;
 
 int kvm_destroy_vcpu(CPUState *cpu)
 {

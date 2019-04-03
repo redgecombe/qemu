@@ -45,6 +45,7 @@ extern bool kvm_readonly_mem_allowed;
 extern bool kvm_direct_msi_allowed;
 extern bool kvm_ioeventfd_any_length_allowed;
 extern bool kvm_msi_use_devid;
+extern int kvm_xo_bit;
 
 #define kvm_enabled()           (kvm_allowed)
 /**
@@ -166,6 +167,13 @@ extern bool kvm_msi_use_devid;
  * defining an MSI routing entry.
  */
 #define kvm_msi_devid_required() (kvm_msi_use_devid)
+
+/**
+ * kvm_xo_bit:
+ * Returns: the physical address bit that selects the XO half of the 
+ * NPT. If 0, kvm xo feature is not enabled.
+ */
+#define kvm_xo_bit() (kvm_xo_bit)
 
 #else
 

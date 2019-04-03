@@ -125,10 +125,12 @@ bool kvm_gsi_routing_allowed;
 bool kvm_gsi_direct_mapping;
 bool kvm_allowed;
 bool kvm_readonly_mem_allowed;
+bool kvm_execonly_mem_allowed;
 bool kvm_vm_attributes_allowed;
 bool kvm_direct_msi_allowed;
 bool kvm_ioeventfd_any_length_allowed;
 bool kvm_msi_use_devid;
+int kvm_xo_bit;
 static bool kvm_immediate_exit;
 
 static const KVMCapabilityInfo kvm_required_capabilites[] = {
@@ -766,6 +768,7 @@ static void kvm_set_phys_mem(KVMMemoryListener *kml,
     bool writeable = !mr->readonly && !mr->rom_device;
     hwaddr start_addr, size;
     void *ram;
+    hwaddr xo_mask = (1UL << kvm_xo_bit); 
 
     if (!memory_region_is_ram(mr)) {
         if (writeable || !kvm_readonly_mem_allowed) {
@@ -800,7 +803,27 @@ static void kvm_set_phys_mem(KVMMemoryListener *kml,
         mem->flags = 0;
         err = kvm_set_user_memory_region(kml, mem, false);
         if (err) {
-            fprintf(stderr, "%s: error unregistering slot: %s\n",
+            printf("%s: error unregistering slot: %s\n",
+                    __func__, strerror(-err));
+            abort();
+        }
+
+	    if (!kvm_xo_bit) {
+            return;
+        }
+
+	    /* Do XO version */
+	    mem = kvm_lookup_matching_slot(kml, start_addr | xo_mask, size);
+        if (!mem) {
+            return;
+        }
+
+        /* unregister the slot */
+        mem->memory_size = 0;
+        mem->flags = 0;
+        err = kvm_set_user_memory_region(kml, mem, false);
+        if (err) {
+            printf("%s: error unregistering XO slot: %s\n",
                     __func__, strerror(-err));
             abort();
         }
@@ -816,7 +839,30 @@ static void kvm_set_phys_mem(KVMMemoryListener *kml,
 
     err = kvm_set_user_memory_region(kml, mem, true);
     if (err) {
-        fprintf(stderr, "%s: error registering slot: %s\n", __func__,
+        printf("%s: error registering reg slot: %s\n", __func__, strerror(-err));
+        abort();
+    }
+	
+    if (!kvm_xo_bit) {
+        return;
+    }
+
+    if (start_addr >= xo_mask) {
+        printf("%s: physical memory address exceeds limits imposed by XO bit\n",
+                __func__);
+        abort();
+    }
+
+    /* Do XO version */
+    mem = kvm_alloc_slot(kml);
+    mem->memory_size = size;
+    mem->start_addr = start_addr | xo_mask;
+    mem->ram = ram;
+    mem->flags = kvm_mem_flags(mr) | KVM_MEM_EXECONLY;
+
+    err = kvm_set_user_memory_region(kml, mem, true);
+    if (err) {
+        printf("%s: error registering xo slot: %s\n", __func__,
                 strerror(-err));
         abort();
     }
@@ -1686,6 +1732,8 @@ static int kvm_init(MachineState *ms)
 
     kvm_readonly_mem_allowed =
         (kvm_check_extension(s, KVM_CAP_READONLY_MEM) > 0);
+
+    kvm_execonly_mem_allowed = true;
 
     kvm_eventfds_allowed =
         (kvm_check_extension(s, KVM_CAP_IOEVENTFD) > 0);
