@@ -42,6 +42,7 @@ extern bool kvm_msi_via_irqfd_allowed;
 extern bool kvm_gsi_routing_allowed;
 extern bool kvm_gsi_direct_mapping;
 extern bool kvm_readonly_mem_allowed;
+extern bool kvm_execonly_mem_allowed;
 extern bool kvm_direct_msi_allowed;
 extern bool kvm_ioeventfd_any_length_allowed;
 extern bool kvm_msi_use_devid;
@@ -147,6 +148,14 @@ extern int kvm_xo_bit;
  * supports it and we're running in a configuration that permits it).
  */
 #define kvm_readonly_mem_enabled() (kvm_readonly_mem_allowed)
+
+/**
+ * kvm_execonly_mem_enabled:
+ *
+ * Returns: true if KVM execonly memory is enabled (ie the kernel
+ * supports it and we're running in a configuration that permits it).
+ */
+#define kvm_execonly_mem_enabled() (kvm_execonly_mem_allowed)
 
 /**
  * kvm_direct_msi_enabled:

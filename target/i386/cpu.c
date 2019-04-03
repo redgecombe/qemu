@@ -1018,6 +1018,20 @@ static FeatureWordInfo feature_word_info[FEATURE_WORDS] = {
         .type = CPUID_FEATURE_WORD,
         .cpuid = { .eax = 0x4000000A, .reg = R_EAX, },
     },
+    [FEAT_KVM_GENERIC] = {
+        .type = CPUID_FEATURE_WORD,
+	.feat_names = {
+            "xo", NULL, NULL, NULL,
+            NULL, NULL,  NULL, NULL,
+            NULL, NULL, NULL, NULL,
+            NULL, NULL, NULL, NULL,
+            NULL, NULL, NULL, NULL,
+            NULL, NULL, NULL, NULL,
+            NULL, NULL, NULL, NULL,
+            NULL, NULL, NULL, NULL,
+        },
+	.cpuid = { .eax = KVM_CPUID_FEAT_GENERIC, .reg = R_EAX, },
+    },
     [FEAT_SVM] = {
         .type = CPUID_FEATURE_WORD,
         .feat_names = {
@@ -1290,6 +1304,11 @@ static uint32_t xsave_area_size(uint64_t mask)
 static inline bool accel_uses_host_cpuid(void)
 {
     return kvm_enabled() || hvf_enabled();
+}
+
+static inline bool accel_supports_xo(void)
+{
+    return kvm_execonly_mem_enabled();
 }
 
 static inline uint64_t x86_cpu_xsave_components(X86CPU *cpu)
@@ -5013,6 +5032,7 @@ static void x86_cpu_expand_features(X86CPU *cpu, Error **errp)
 
     if (!kvm_enabled() || !cpu->expose_kvm) {
         env->features[FEAT_KVM] = 0;
+	env->features[FEAT_KVM_GENERIC] = 0;
     }
 
     x86_cpu_enable_xsave_components(cpu);
@@ -5206,11 +5226,22 @@ static void x86_cpu_realizefn(DeviceState *dev, Error **errp)
                 }
             }
 
+            if (env->features[FEAT_KVM_GENERIC] & CPUID_KVM_GENERIC_XO) {
+                if (!accel_supports_xo()) {
+                    error_setg(&local_err,  "Host doesn't support xo memory");
+                    goto out;
+                }
+                
+                cpu->phys_bits = x86_host_phys_bits() - 1;
+                kvm_xo_bit = cpu->phys_bits;
+            }
+
             /* Print a warning if the user set it to a value that's not the
-             * host value.
+             * host value. Don't warn if guest bits don't match host bits in the
+             * case of KVM XO, as that's the idea.
              */
             if (cpu->phys_bits != host_phys_bits && cpu->phys_bits != 0 &&
-                !warned) {
+                !warned && !kvm_xo_bit) {
                 warn_report("Host physical bits (%u)"
                             " does not match phys-bits property (%u)",
                             host_phys_bits, cpu->phys_bits);

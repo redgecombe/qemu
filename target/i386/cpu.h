@@ -499,6 +499,7 @@ typedef enum FeatureWord {
     FEAT_HYPERV_EDX,    /* CPUID[4000_0003].EDX */
     FEAT_HV_RECOMM_EAX, /* CPUID[4000_0004].EAX */
     FEAT_HV_NESTED_EAX, /* CPUID[4000_000A].EAX */
+    FEAT_KVM_GENERIC,   /* CPUID[4000_0030].EAX */
     FEAT_SVM,           /* CPUID[8000_000A].EDX */
     FEAT_XSAVE,         /* CPUID[EAX=0xd,ECX=1].EAX */
     FEAT_6_EAX,         /* CPUID[6].EAX */
@@ -635,6 +636,8 @@ typedef uint32_t FeatureWordArray[FEATURE_WORDS];
 #define CPUID_EXT3_TOPOEXT (1U << 22)
 #define CPUID_EXT3_PERFCORE (1U << 23)
 #define CPUID_EXT3_PERFNB  (1U << 24)
+
+#define CPUID_KVM_GENERIC_XO   (1U << 0)
 
 #define CPUID_SVM_NPT          (1U << 0)
 #define CPUID_SVM_LBRV         (1U << 1)

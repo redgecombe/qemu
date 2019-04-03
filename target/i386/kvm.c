@@ -1028,7 +1028,7 @@ int kvm_arch_init_vcpu(CPUState *cs)
         memcpy(signature, "KVMKVMKVM\0\0\0", 12);
         c = &cpuid_data.entries[cpuid_i++];
         c->function = KVM_CPUID_SIGNATURE | kvm_base;
-        c->eax = KVM_CPUID_FEATURES | kvm_base;
+        c->eax = KVM_CPUID_FEAT_GENERIC | kvm_base;
         c->ebx = signature[0];
         c->ecx = signature[1];
         c->edx = signature[2];
@@ -1037,6 +1037,10 @@ int kvm_arch_init_vcpu(CPUState *cs)
         c->function = KVM_CPUID_FEATURES | kvm_base;
         c->eax = env->features[FEAT_KVM];
         c->edx = env->features[FEAT_KVM_HINTS];
+
+	c = &cpuid_data.entries[cpuid_i++];
+        c->function = KVM_CPUID_FEAT_GENERIC | kvm_base;
+        c->eax = env->features[FEAT_KVM_GENERIC];
     }
 
     cpu_x86_cpuid(env, 0, 0, &limit, &unused, &unused, &unused);
